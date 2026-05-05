@@ -61,7 +61,7 @@ export const POWER_OFF_CODES: { brand: string; code: IRCode }[] = [
   { brand: 'LG', code: nec(0x20DF10EF) },
   { brand: 'Sony', code: sirc(0xA90, 12) },
   { brand: 'Sony (15-bit)', code: sirc(0x2A50, 15) },
-  { brand: 'Panasonic', code: nec(0x40040100BCBD) >>> 0 },
+  { brand: 'Panasonic', code: nec(0x100BCBD) },
   { brand: 'Philips', code: rc5(0x180C) },
   { brand: 'Sharp', code: nec(0x41A2) },
   { brand: 'Toshiba', code: nec(0x2FD48B7) },
