@@ -1,2 +1,13 @@
-include ':android'
+rootProject.name = "tv-blaster-buddy"
+
+include ':app'
+project(':app').projectDir = new File('android/app')
+
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File('node_modules/@capacitor/android/capacitor')
+
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('android/capacitor-cordova-android-plugins')
+
 include ':android-plugin'
+project(':android-plugin').projectDir = new File('android-plugin')

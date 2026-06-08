@@ -7,17 +7,10 @@ android {
     defaultConfig {
         minSdk 24
     }
-
-    sourceSets {
-        main {
-            java.srcDirs = ['.']
-            manifest.srcFile 'AndroidManifest.xml'
-        }
-    }
 }
 
 dependencies {
-    implementation "com.getcapacitor:android:6.1.1"
+    implementation project(':capacitor-android')
     implementation "androidx.appcompat:appcompat:1.7.0"
 }
 
