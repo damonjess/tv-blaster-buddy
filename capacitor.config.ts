@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.12ff460206454699b2063fab7b07d5e2',
+  appId: 'app.lovable.tvoff',
   appName: 'TV-Off',
   webDir: 'dist',
   server: {
