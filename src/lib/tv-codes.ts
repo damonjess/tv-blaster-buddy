@@ -12,6 +12,8 @@ function nec(hex: number, freq = 38000): IRCode {
     pattern.push(((hex >>> i) & 1) ? ONE_SPACE : ZERO_SPACE);
   }
   pattern.push(BIT_MARK);
+  // Trailing gap so the receiver registers the end of the frame.
+  pattern.push(40000);
   return { frequency: freq, pattern };
 }
 
