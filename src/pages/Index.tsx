@@ -80,9 +80,12 @@ const Index = () => {
         setProgress(Math.round((i / POWER_OFF_CODES.length) * 100));
 
         try {
+          // Repeat each frame 3x — a single IR frame is often ignored by TVs,
+          // just like a real remote sends a code several times per button press.
+          const repeated = chunk.flatMap(c => [c.code, c.code, c.code]);
           const result = await IR.transmitMany({
-            codes: chunk.map(c => c.code),
-            gapMs: 150
+            codes: repeated,
+            gapMs: 60
           });
 
           if ((result as any).error) {
