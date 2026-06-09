@@ -6,7 +6,7 @@ export interface IRCode {
 }
 
 export interface IRPlugin {
-  hasIR(): Promise<{ hasIR: boolean }>;
+  hasIR(): Promise<{ hasIR: boolean; exists?: boolean; frequencies?: { min: number; max: number }[] }>;
   transmit(code: IRCode): Promise<void>;
   transmitMany(options: { codes: IRCode[]; gapMs?: number }): Promise<{ sent: number }>;
 }
