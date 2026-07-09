@@ -82,9 +82,29 @@ function panasonic(addr: number, data: number): IRCode {
   return { frequency: 37000, pattern, protocol: 'panasonic' };
 }
 
+// JVC helper (16-bit, LSB-first). JVC is NOT NEC — it has its own header/timing
+// and repeats the frame WITHOUT re-sending the long header. Passing a 16-bit
+// value through the 32-bit nec() helper (as before) just left-padded 24 zero
+// bits and produced a frame no JVC set would recognise.
+function jvc(value: number): IRCode {
+  const HDR_MARK = 8400, HDR_SPACE = 4200;
+  const BIT_MARK = 526, ONE_SPACE = 1574, ZERO_SPACE = 526;
+  const pattern: number[] = [HDR_MARK, HDR_SPACE];
+  for (let i = 0; i < 16; i++) {
+    pattern.push(BIT_MARK);
+    pattern.push(((value >>> i) & 1) ? ONE_SPACE : ZERO_SPACE);
+  }
+  pattern.push(BIT_MARK);
+  pattern.push(40000); // lead-out so the receiver registers frame end
+  return { frequency: 38000, pattern, protocol: 'jvc' };
+}
+
 export interface Brand {
   name: string;
   codes: IRCode[];
+  // true = shared fallback NEC code reused across rebadged/budget sets, NOT a
+  // brand-verified capture. Surfaced in the UI so it doesn't read as precise.
+  shared?: boolean;
 }
 
 // Grouped by manufacturer so users can converge on their actual TV instead of
