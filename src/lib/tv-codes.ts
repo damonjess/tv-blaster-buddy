@@ -2,7 +2,7 @@
 // Patterns are in microseconds, alternating ON/OFF, for Android's ConsumerIrManager.
 import type { IRCode } from './ir-plugin';
 
-export type Protocol = 'nec' | 'sirc' | 'rc5' | 'panasonic';
+export type Protocol = 'nec' | 'sirc' | 'rc5' | 'panasonic' | 'jvc';
 
 // Per-protocol repeat behaviour. Real remotes (and TV-B-Gone) don't spam a flat
 // gap for every protocol — each has its own frame period and repeat cadence, so a
@@ -12,6 +12,7 @@ export const PROTOCOL_TIMING: Record<Protocol, { repeat: number; gapMs: number }
   sirc: { repeat: 3, gapMs: 26 },      // Sony requires >=3 frames, 45ms period
   rc5: { repeat: 2, gapMs: 92 },       // RC5 frame period is ~114ms
   panasonic: { repeat: 2, gapMs: 42 }, // ~130ms frame period
+  jvc: { repeat: 3, gapMs: 50 },       // JVC repeats the frame (no re-header) ~55ms apart
 };
 
 // NEC protocol helper (32-bit)
