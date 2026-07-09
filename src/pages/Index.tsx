@@ -260,7 +260,10 @@ const Index = () => {
                       lastBrand === brand.name && "border-primary/60 bg-primary/10"
                     )}
                   >
-                    <span className="truncate">{brand.name}</span>
+                    <span className="truncate">
+                      {brand.name}
+                      {brand.shared && <span className="ml-1 text-[10px] text-muted-foreground/70">·shared</span>}
+                    </span>
                     {lastBrand === brand.name && <Star className="h-3.5 w-3.5 shrink-0 fill-primary text-primary" />}
                   </button>
                 ))}
