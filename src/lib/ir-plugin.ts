@@ -3,7 +3,7 @@ import { registerPlugin } from '@capacitor/core';
 export interface IRCode {
   frequency: number;
   pattern: number[];
-  protocol?: 'nec' | 'sirc' | 'rc5' | 'panasonic';
+  protocol?: 'nec' | 'sirc' | 'rc5' | 'panasonic' | 'jvc';
 }
 
 export interface IRPlugin {
