@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from "react";
-import { Power, Wifi, WifiOff, Trash2, ChevronDown, Square, Star } from "lucide-react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { Power, Wifi, WifiOff, Trash2, ChevronDown, Square, Star, Search, Filter } from "lucide-react";
 import { IR } from "@/lib/ir-plugin";
 import { BRANDS, PROTOCOL_TIMING, POWER_OFF_CODES, type Brand } from "@/lib/tv-codes";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 
 interface LogEntry {
   id: number;
@@ -24,6 +25,8 @@ const Index = () => {
   const [progress, setProgress] = useState(0);
   const [showDebug, setShowDebug] = useState(false);
   const [showBrands, setShowBrands] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [lastBrand, setLastBrand] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const cancelRef = useRef(false);
@@ -41,7 +44,7 @@ const Index = () => {
   };
 
   useEffect(() => {
-    document.title = "TV-Off · One-tap universal power off";
+    document.title = "TV-Off · Universal IR TV Power Blaster";
     const saved = localStorage.getItem(LAST_BRAND_KEY);
     if (saved) setLastBrand(saved);
     addLog("App initialized. Checking hardware...");
@@ -53,7 +56,7 @@ const Index = () => {
         if (r?.hasIR) {
           addLog(`IR Blaster found! Supported ranges: ${JSON.stringify(r.frequencies)}`, "success");
         } else if (r?.exists) {
-          const msg = "Infrared service exists, but this device won't expose the emitter — it may be locked by the manufacturer (common on Honor/Huawei) or blocked by permissions.";
+          const msg = "Infrared service exists, but this device won't expose the emitter — it may be locked by the manufacturer or blocked by permissions.";
           setIrReason(msg);
           addLog(msg, "error");
         } else {
@@ -74,7 +77,7 @@ const Index = () => {
 
   // Fire a single code, repeating it per its protocol's cadence.
   const fireCode = async (code: (typeof POWER_OFF_CODES)[number]["code"]) => {
-    const timing = PROTOCOL_TIMING[code.protocol ?? "nec"];
+    const timing = PROTOCOL_TIMING[code.protocol ?? "nec"] || PROTOCOL_TIMING.nec;
     await IR.transmitMany({
       codes: Array.from({ length: timing.repeat }, () => code),
       gapMs: timing.gapMs,
@@ -117,7 +120,7 @@ const Index = () => {
           }
         }
         addLog(`Sent ${brand.name} (${brand.codes.length} code${brand.codes.length > 1 ? "s" : ""})`, "info");
-        await new Promise((r) => setTimeout(r, 80));
+        await new Promise((r) => setTimeout(r, 60));
       }
 
       if (!cancelRef.current) {
@@ -126,7 +129,7 @@ const Index = () => {
         if (persistWinner && brands.length === 1) {
           localStorage.setItem(LAST_BRAND_KEY, brands[0].name);
           setLastBrand(brands[0].name);
-          toast({ title: `${brands[0].name} sent`, description: "Saved as your TV — it'll fire first next time." });
+          toast({ title: `${brands[0].name} sent`, description: "Saved as your primary TV — it'll fire first next time." });
         } else {
           toast({ title: "Done", description: "Sent power-off sequence." });
         }
@@ -155,6 +158,19 @@ const Index = () => {
     if (firing) stop();
     else fireAll();
   };
+
+  // Filtered brands based on search query and category
+  const filteredBrands = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return BRANDS.filter((brand) => {
+      const matchesSearch =
+        !q ||
+        brand.name.toLowerCase().includes(q) ||
+        (brand.models && brand.models.some((m) => m.toLowerCase().includes(q)));
+      const matchesCat = selectedCategory === "all" || brand.category === selectedCategory;
+      return matchesSearch && matchesCat;
+    });
+  }, [searchQuery, selectedCategory]);
 
   // Long-press the logo to reveal the developer debug console.
   const startLongPress = () => {
@@ -191,17 +207,17 @@ const Index = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto relative z-10">
-        <section className="mx-auto flex max-w-md flex-col items-center px-6 pt-12 text-center">
+        <section className="mx-auto flex max-w-md flex-col items-center px-6 pt-10 text-center">
           <h1 className="text-3xl font-semibold tracking-tight">One tap. All TVs off.</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Cycles through codes for {BRANDS.length} brands using your hardware.
+            Supports {BRANDS.length} brands & {POWER_OFF_CODES.length}+ IR protocol variations.
           </p>
 
           <button
             onClick={onPower}
             aria-label={firing ? "Stop transmission" : "Power off all TVs"}
             className={cn(
-              "group relative mt-12 flex h-60 w-60 items-center justify-center rounded-full",
+              "group relative mt-10 flex h-60 w-60 items-center justify-center rounded-full",
               "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]",
               "shadow-[0_0_60px_-10px_hsl(var(--primary)/0.7),inset_0_-8px_24px_hsl(0_0%_0%/0.35)]",
               "transition-all duration-200 active:scale-95",
@@ -231,42 +247,91 @@ const Index = () => {
             ) : (
               <p className="text-xs text-muted-foreground px-10">
                 {lastBrand
-                  ? `Point the top edge at your TV. ${lastBrand} fires first.`
+                  ? `Point top edge at TV. ${lastBrand} fires first.`
                   : "Point the top edge of your phone at the TV and hold steady."}
               </p>
             )}
           </div>
 
-          {/* Per-brand converge list */}
-          <div className="w-full mt-4 mb-10">
+          {/* Per-brand selector with Search & Categories */}
+          <div className="w-full mt-2 mb-10">
             <button
               onClick={() => setShowBrands((v) => !v)}
               className="flex w-full items-center justify-between rounded-xl border border-border/60 bg-card/40 px-4 py-3 text-sm backdrop-blur hover:bg-card/60 transition-colors"
             >
-              <span>Try a single brand</span>
+              <span className="font-medium">Target a specific TV brand ({BRANDS.length})</span>
               <ChevronDown className={cn("h-4 w-4 transition-transform", showBrands && "rotate-180")} />
             </button>
 
             {showBrands && (
-              <div className="mt-2 grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                {BRANDS.map((brand) => (
-                  <button
-                    key={brand.name}
-                    disabled={firing}
-                    onClick={() => fireBrands([brand], true)}
-                    className={cn(
-                      "flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-sm text-left backdrop-blur transition-colors",
-                      "hover:bg-card/60 disabled:opacity-50",
-                      lastBrand === brand.name && "border-primary/60 bg-primary/10"
-                    )}
-                  >
-                    <span className="truncate">
-                      {brand.name}
-                      {brand.shared && <span className="ml-1 text-[10px] text-muted-foreground/70">·shared</span>}
-                    </span>
-                    {lastBrand === brand.name && <Star className="h-3.5 w-3.5 shrink-0 fill-primary text-primary" />}
-                  </button>
-                ))}
+              <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search brand or model (e.g. Digihome 24225SMLED, Samsung)..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9 text-xs bg-card/60 border-border/60"
+                  />
+                </div>
+
+                {/* Category Pills */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 text-[11px] no-scrollbar">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "popular", label: "Popular" },
+                    { id: "smart_tv", label: "Smart TV / Streaming" },
+                    { id: "regional", label: "Europe & Asia" },
+                    { id: "budget", label: "Budget & Rebadged" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-full border whitespace-nowrap transition-colors",
+                        selectedCategory === cat.id
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border/60 bg-card/30 text-muted-foreground hover:bg-card/60"
+                      )}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Brand Grid */}
+                <div className="max-h-64 overflow-y-auto pr-1 grid grid-cols-2 gap-2">
+                  {filteredBrands.length === 0 ? (
+                    <div className="col-span-2 py-6 text-center text-xs text-muted-foreground">
+                      No matching brands found.
+                    </div>
+                  ) : (
+                    filteredBrands.map((brand) => (
+                      <button
+                        key={brand.name}
+                        disabled={firing}
+                        onClick={() => fireBrands([brand], true)}
+                        className={cn(
+                          "flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-xs text-left backdrop-blur transition-colors",
+                          "hover:bg-card/60 disabled:opacity-50",
+                          lastBrand === brand.name && "border-primary/60 bg-primary/10"
+                        )}
+                      >
+                        <div className="truncate pr-1">
+                          <span className="truncate block font-medium">{brand.name}</span>
+                          <span className="text-[10px] text-muted-foreground block truncate">
+                            {brand.codes.length} code{brand.codes.length > 1 ? "s" : ""}
+                            {brand.models && brand.models.length > 0 ? ` · ${brand.models[0]}` : ""}
+                            {brand.shared ? " · shared" : ""}
+                          </span>
+                        </div>
+                        {lastBrand === brand.name && <Star className="h-3.5 w-3.5 shrink-0 fill-primary text-primary ml-1" />}
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -306,6 +371,9 @@ const Index = () => {
               <div className="px-4 py-2 bg-muted/20 border-t border-border flex flex-wrap gap-2">
                 <div className="text-[9px] px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
                   Frequencies: {irInfo?.frequencies?.length || 0} ranges
+                </div>
+                <div className="text-[9px] px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
+                  Brands: {BRANDS.length}
                 </div>
                 <div className="text-[9px] px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
                   Codes: {POWER_OFF_CODES.length}
